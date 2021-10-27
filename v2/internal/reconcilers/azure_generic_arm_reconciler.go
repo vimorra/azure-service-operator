@@ -672,7 +672,7 @@ func (r *AzureDeploymentReconciler) getStatus(ctx context.Context, id string) (g
 		return nil, zeroDuration, err
 	}
 
-	armStatus, err := reflecthelpers.NewEmptyArmResourceStatus(r.obj)
+	armStatus, err := genruntime.NewEmptyARMStatus(r.obj, r.ResourceResolver.Scheme())
 	if err != nil {
 		return nil, zeroDuration, errors.Wrapf(err, "constructing ARM status for resource: %q", id)
 	}
@@ -855,9 +855,23 @@ func ignoreNotFoundAndConflict(err error) error {
 // ConvertResourceToARMResource converts a genruntime.MetaObject (a Kubernetes representation of a resource) into
 // a genruntime.ARMResourceSpec - a specification which can be submitted to Azure for deployment
 func (r *AzureDeploymentReconciler) ConvertResourceToARMResource(ctx context.Context) (genruntime.ARMResource, error) {
-	spec, err := genruntime.GetVersionedSpec(r.obj, r.ResourceResolver.Scheme())
+	metaObject := r.obj
+	resolver := r.ResourceResolver
+	scheme := resolver.Scheme()
+
+	return ConvertToARMResourceImpl(ctx, metaObject, scheme, resolver, r.ARMClient.SubscriptionID())
+}
+
+// ConvertToARMResourceImpl factored out of AzureDeploymentReconciler.ConvertResourceToARMResource to allow for testing
+func ConvertToARMResourceImpl(
+	ctx context.Context,
+	metaObject genruntime.MetaObject,
+	scheme *runtime.Scheme,
+	resolver *genruntime.Resolver,
+	subscriptionID string) (genruntime.ARMResource, error) {
+	spec, err := genruntime.GetVersionedSpec(metaObject, scheme)
 	if err != nil {
-		return nil, errors.Errorf("unable to get spec from %s", r.obj.GetObjectKind().GroupVersionKind())
+		return nil, errors.Errorf("unable to get spec from %s", metaObject.GetObjectKind().GroupVersionKind())
 	}
 
 	armTransformer, ok := spec.(genruntime.ARMTransformer)
@@ -865,14 +879,14 @@ func (r *AzureDeploymentReconciler) ConvertResourceToARMResource(ctx context.Con
 		return nil, errors.Errorf("spec was of type %T which doesn't implement genruntime.ArmTransformer", spec)
 	}
 
-	resourceHierarchy, resolvedDetails, err := r.resolve(ctx)
+	resourceHierarchy, resolvedDetails, err := resolve(ctx, resolver, metaObject)
 	if err != nil {
 		return nil, err
 	}
 
 	armSpec, err := armTransformer.ConvertToARM(resolvedDetails)
 	if err != nil {
-		return nil, errors.Wrapf(err, "transforming resource %s to ARM", r.obj.GetName())
+		return nil, errors.Wrapf(err, "transforming resource %s to ARM", metaObject.GetName())
 	}
 
 	typedArmSpec, ok := armSpec.(genruntime.ARMResourceSpec)
@@ -880,7 +894,7 @@ func (r *AzureDeploymentReconciler) ConvertResourceToARMResource(ctx context.Con
 		return nil, errors.Errorf("casting armSpec of type %T to genruntime.ARMResourceSpec", armSpec)
 	}
 
-	armID, err := resourceHierarchy.FullyQualifiedARMID(r.ARMClient.SubscriptionID())
+	armID, err := resourceHierarchy.FullyQualifiedARMID(subscriptionID)
 	if err != nil {
 		return nil, err
 	}
@@ -889,21 +903,20 @@ func (r *AzureDeploymentReconciler) ConvertResourceToARMResource(ctx context.Con
 	return result, nil
 }
 
-func (r *AzureDeploymentReconciler) resolve(ctx context.Context) (genruntime.ResourceHierarchy, genruntime.ConvertToARMResolvedDetails, error) {
-
-	resourceHierarchy, err := r.ResourceResolver.ResolveResourceHierarchy(ctx, r.obj)
+func resolve(ctx context.Context, resolver *genruntime.Resolver, metaObject genruntime.MetaObject) (genruntime.ResourceHierarchy, genruntime.ConvertToARMResolvedDetails, error) {
+	resourceHierarchy, err := resolver.ResolveResourceHierarchy(ctx, metaObject)
 	if err != nil {
 		return nil, genruntime.ConvertToARMResolvedDetails{}, err
 	}
 
 	// Find all of the references
-	refs, err := reflecthelpers.FindResourceReferences(r.obj)
+	refs, err := reflecthelpers.FindResourceReferences(metaObject)
 	if err != nil {
-		return nil, genruntime.ConvertToARMResolvedDetails{}, errors.Wrapf(err, "finding references on %q", r.obj.GetName())
+		return nil, genruntime.ConvertToARMResolvedDetails{}, errors.Wrapf(err, "finding references on %q", metaObject.GetName())
 	}
 
 	// resolve them
-	resolvedRefs, err := r.ResourceResolver.ResolveReferencesToARMIDs(ctx, refs)
+	resolvedRefs, err := resolver.ResolveReferencesToARMIDs(ctx, refs)
 	if err != nil {
 		return nil, genruntime.ConvertToARMResolvedDetails{}, errors.Wrapf(err, "failed resolving ARM IDs for references")
 	}
