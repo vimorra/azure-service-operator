@@ -20,4 +20,3 @@ func CreateResourceGroup() *resources.ResourceGroup {
 		},
 	}
 }
-
