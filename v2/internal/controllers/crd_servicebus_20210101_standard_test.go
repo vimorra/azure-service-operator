@@ -15,7 +15,7 @@ import (
 	"github.com/Azure/azure-service-operator/v2/internal/testcommon"
 )
 
-func Test_ServiceBus_Basic_CRUD(t *testing.T) {
+func Test_ServiceBus_20210101_Standard_CRUD(t *testing.T) {
 	t.Parallel()
 
 	tc := globalTestContext.ForTest(t)
@@ -24,12 +24,12 @@ func Test_ServiceBus_Basic_CRUD(t *testing.T) {
 
 	zoneRedundant := false
 	namespace := &servicebus.Namespace{
-		ObjectMeta: tc.MakeObjectMetaWithName(tc.Namer.GenerateName("sbnamespace")),
+		ObjectMeta: tc.MakeObjectMetaWithName(tc.Namer.GenerateName("sbstandard")),
 		Spec: servicebus.Namespaces_Spec{
 			Location: tc.AzureRegion,
 			Owner:    testcommon.AsOwner(rg),
 			Sku: &servicebus.SBSku{
-				Name: servicebus.SBSkuNameBasic,
+				Name: servicebus.SBSkuNameStandard,
 			},
 			ZoneRedundant: &zoneRedundant,
 		},
@@ -43,9 +43,11 @@ func Test_ServiceBus_Basic_CRUD(t *testing.T) {
 	tc.RunParallelSubtests(
 		testcommon.Subtest{
 			Name: "Queue CRUD",
-			Test: func(testContext *testcommon.KubePerTestContext) {
-				ServiceBus_Queue_CRUD(testContext, namespace)
-			},
+			Test: func(t *testcommon.KubePerTestContext) { ServiceBus_20210101_Queue_CRUD(tc, namespace) },
+		},
+		testcommon.Subtest{
+			Name: "Topic CRUD",
+			Test: func(t *testcommon.KubePerTestContext) { ServiceBus_20210101_Topic_CRUD(tc, namespace) },
 		},
 	)
 
@@ -58,21 +60,22 @@ func Test_ServiceBus_Basic_CRUD(t *testing.T) {
 	tc.Expect(exists).To(BeFalse())
 }
 
-func ServiceBus_Queue_CRUD(tc *testcommon.KubePerTestContext, sbNamespace client.Object) {
-	queue := &servicebus.NamespacesQueue{
-		ObjectMeta: tc.MakeObjectMeta("queue"),
-		Spec: servicebus.NamespacesQueues_Spec{
+// Topics can only be created in Standard or Premium SKUs
+func ServiceBus_20210101_Topic_CRUD(tc *testcommon.KubePerTestContext, sbNamespace client.Object) {
+	topic := &servicebus.NamespacesTopic{
+		ObjectMeta: tc.MakeObjectMeta("topic"),
+		Spec: servicebus.NamespacesTopics_Spec{
 			Location: &tc.AzureRegion,
 			Owner:    testcommon.AsOwner(sbNamespace),
 		},
 	}
 
-	tc.CreateResourceAndWait(queue)
-	defer tc.DeleteResourceAndWait(queue)
+	tc.CreateResourceAndWait(topic)
+	defer tc.DeleteResourceAndWait(topic)
 
-	tc.Expect(queue.Status.Id).ToNot(BeNil())
+	tc.Expect(topic.Status.Id).ToNot(BeNil())
 
 	// a basic assertion on a property
-	tc.Expect(queue.Status.SizeInBytes).ToNot(BeNil())
-	tc.Expect(*queue.Status.SizeInBytes).To(Equal(0))
+	tc.Expect(topic.Status.SizeInBytes).ToNot(BeNil())
+	tc.Expect(*topic.Status.SizeInBytes).To(Equal(0))
 }
