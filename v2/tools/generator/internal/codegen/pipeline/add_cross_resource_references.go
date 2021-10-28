@@ -198,6 +198,7 @@ func newKnownReferencesMap(configuration *config.Configuration) map[referencePai
 	documentDB20210515 := configuration.MakeLocalPackageReference("microsoft.documentdb", "v1alpha1api20210515")
 	storage20210401 := configuration.MakeLocalPackageReference("microsoft.storage", "v1alpha1api20210401")
 	serviceBus20210101 := configuration.MakeLocalPackageReference("microsoft.servicebus", "v1alpha1api20210101preview")
+	serviceBus20210601 := configuration.MakeLocalPackageReference("microsoft.servicebus", "v1alpha1api20210601preview")
 	network20201101 := configuration.MakeLocalPackageReference("microsoft.network", "v1alpha1api20201101")
 	compute20200930 := configuration.MakeLocalPackageReference("microsoft.compute", "v1alpha1api20200930")
 	compute20201201 := configuration.MakeLocalPackageReference("microsoft.compute", "v1alpha1api20201201")
@@ -264,6 +265,10 @@ func newKnownReferencesMap(configuration *config.Configuration) map[referencePai
 		// Service bus
 		{
 			typeName: astmodel.MakeTypeName(serviceBus20210101, "UserAssignedIdentityProperties"),
+			propName: "UserAssignedIdentity",
+		}: true,
+		{
+			typeName: astmodel.MakeTypeName(serviceBus20210601, "UserAssignedIdentityProperties"),
 			propName: "UserAssignedIdentity",
 		}: true,
 		// Network

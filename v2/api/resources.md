@@ -85,6 +85,12 @@ v1alpha1api20210101preview
 - NamespacesQueue
 - NamespacesTopic
 
+v1alpha1api20210601preview
+
+- Namespace
+- NamespacesQueue
+- NamespacesTopic
+
 ### microsoft.storage
 
 v1alpha1api20210401

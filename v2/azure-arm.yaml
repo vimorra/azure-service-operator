@@ -17,6 +17,10 @@ typeFilters:
     version: v*api20210101preview
     because: We want to export this particular preview version
   - action: include
+    group: microsoft.servicebus
+    version: v*api20210601preview
+    because: We want to export this particular preview version
+  - action: include
     group: microsoft.authorization
     version: v*api20200801preview
     because: We want to export this particular preview version
@@ -128,17 +132,17 @@ exportFilters:
     because: "including Cosmos DB resource"
   - action: include-transitive
     group: microsoft.servicebus
-    version: v*api20210101preview
+    version: v*api20210101preview;v*api20210601preview
     name: Namespace
     because: "including Service Bus namespaces"
   - action: include-transitive
     group: microsoft.servicebus
-    version: v*api20210101preview
+    version: v*api20210101preview;v*api20210601preview
     name: NamespacesQueue
     because: "including Service Bus queues"
   - action: include-transitive
     group: microsoft.servicebus
-    version: v*api20210101preview
+    version: v*api20210101preview;v*api20210601preview
     name: NamespacesTopic
     because: "including Service Bus topics"
   - action: include-transitive
