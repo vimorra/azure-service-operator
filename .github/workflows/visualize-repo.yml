@@ -10,6 +10,10 @@ on:
 jobs:
   render:
     runs-on: ubuntu-latest
+    permissions:
+      packages: read
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3.3.0
@@ -19,7 +23,7 @@ jobs:
       - name: Create Branch
         uses: peterjgrainger/action-create-branch@64aa569aea81305305c6e92bd236d8c427debff8 # Pinned to v2.3.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           branch: 'bot/update-diagrams'
 
@@ -67,7 +71,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@2b011faafdcbc9ceb11414d64d0573f37c774b04 # v4.2.3
         with:
-          token: ${{ secrets.GH_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Update Code Structure Diagrams
           branch: bot/update-diagrams
           base: main
