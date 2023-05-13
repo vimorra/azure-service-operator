@@ -863,10 +863,11 @@ tasks:
 
   controller:gen-crd-docs:
     desc: Generates API docs for CRDs
-    deps: [controller:generate-crds]
     dir: "{{.CONTROLLER_ROOT}}"
     cmds:
       - "{{.SCRIPTS_ROOT}}/gen-api-docs.sh ./api ../docs/hugo/content/reference ../docs/v2/api/template"
+      # Need to run this AFTER generating the docs, otherwise links in the supported resources pages will be out of date
+      - task: controller-generate-crds
 
   ############### Crossplane targets ###############
   crossplane:quick-checks:
